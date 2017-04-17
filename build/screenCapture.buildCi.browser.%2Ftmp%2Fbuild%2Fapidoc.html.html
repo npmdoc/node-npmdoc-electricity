@@ -1,0 +1,415 @@
+<html><head></head><body><div class="apidocDiv">
+<style>
+/*csslint
+*/
+.apidocDiv {
+    background: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+}
+.apidocDiv a[href] {
+    color: #33f;
+    font-weight: bold;
+    text-decoration: none;
+}
+.apidocDiv a[href]:hover {
+    text-decoration: underline;
+}
+.apidocCodeCommentSpan {
+    background: #bbf;
+    color: #000;
+    display: block;
+}
+.apidocCodeKeywordSpan {
+    color: #d00;
+    font-weight: bold;
+}
+.apidocCodePre {
+    background: #eef;
+    border: 1px solid;
+    color: #777;
+    padding: 5px;
+    white-space: pre-wrap;
+}
+.apidocFooterDiv {
+    margin-top: 20px;
+    text-align: center;
+}
+.apidocModuleLi {
+    margin-top: 10px;
+}
+.apidocSectionDiv {
+    border-top: 1px solid;
+    margin-top: 20px;
+}
+.apidocSignatureSpan {
+    color: #777;
+    font-weight: bold;
+}
+</style>
+<h1>api documentation for
+    <a href="https://github.com/mediocre/electricity#readme">electricity (v1.7.0)</a>
+</h1>
+<h4>An alternative to the built-in Express middleware for serving static files. Electricity follows a number of best practices for making web pages fast.</h4>
+<div class="apidocSectionDiv"><a href="#apidoc.tableOfContents" id="apidoc.tableOfContents"><h1>table of contents</h1></a><ol>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.electricity">module electricity</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.electricity.static">
+            function <span class="apidocSignatureSpan">electricity.</span>static
+            <span class="apidocSignatureSpan">(directory, options)</span>
+            </a>
+
+        </li>
+
+    </ol></li>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.electricity.static">module electricity.static</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.electricity.static.static">
+            function <span class="apidocSignatureSpan">electricity.</span>static
+            <span class="apidocSignatureSpan">(directory, options)</span>
+            </a>
+
+        </li>
+
+    </ol></li>
+
+</ol></div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.electricity" id="apidoc.module.electricity">module electricity</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.electricity.static" id="apidoc.element.electricity.static">
+        function <span class="apidocSignatureSpan">electricity.</span>static
+        <span class="apidocSignatureSpan">(directory, options)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">function static(directory, options) {
+    directory = path.resolve(directory || 'public');
+
+    if (!options) {
+        options = {};
+    }
+
+    if (!('hashify' in options)) {
+        options.hashify = true;
+    }
+
+    if (!options.sass) {
+        options.sass = {};
+    }
+
+    if (!options.snockets) {
+        options.snockets = {};
+    }
+
+    if (!options.jsx) {
+        options.jsx = {};
+    }
+
+    options.snockets.async = false;
+
+    if (!options.uglifycss) {
+        options.uglifycss = {
+            enabled: true
+        };
+    }
+
+    if (!options.uglifyjs) {
+        options.uglifyjs = {
+            compress: {
+                sequences: false
+            },
+            enabled: true
+        };
+    }
+
+    if (!options.watch) {
+        options.watch = {
+            enabled: true
+        };
+    }
+
+    if (options.hostname) {
+        if (typeof options.hostname !== 'string') {
+            throw Error('hostname must be a string');
+        } else if (options.hostname.slice(-1) === '/') {
+            options.hostname = options.hostname.slice(0, options.hostname.length - 1);
+        }
+    }
+
+    if (options.sass.imagePath) {
+        if (typeof options.sass.imagePath !== 'string') {
+            throw Error('sass.imagePath must be a string');
+        }
+    }
+
+    if (!options.sass.functions) {
+        options.sass.functions = {};
+    }
+
+    options.sass.functions['image-url($img)'] = function(img) {
+        return new sass.types.String('url("' +
+            (options.sass.imagePath ?
+                path.join('/', options.sass.imagePath, img.getValue()) :
+                path.join('/', img.getValue())
+            ) +
+            '")');
+    };
+
+    var files = {};
+    var snockets = new Snockets();
+    var stylesheets = [];
+
+    function cacheFile(filePath, stat) {
+        // Make sure stat wasn't an extra index parameter
+        stat = typeof stat === 'object' ? stat : fs.statSync(filePath);
+
+        if (!stat.isDirectory()) {
+            var data;
+            var ext = path.extname(filePath);
+            var relativeUrl = toRelativeUrl(filePath);
+
+            // Compilation steps
+            if (ext === '.scss' &amp;&amp; !shouldIgnore(relativeUrl, options.sass.ignore)) {
+                // Sass
+                options.sass.file = filePath;
+                data = sass.renderSync(options.sass).css.toString();
+
+                // Future steps should treat this as plain CSS
+                relativeUrl = relativeUrl.replace(/.scss$/, '.css');
+                ext = '.css';
+            } else if (ext === '.js' &amp;&amp; !shouldIgnore(relativeUrl, options.snockets.ignore)) {
+                // Snockets
+                try {
+                    data = snockets.getConcatenation(filePath, options.snockets);
+                } catch (e) {
+                    // Snockets can't parse, so just pass the js file along
+                    console.warn('Snockets skipping ' + filePath + ":\n" + e);
+                    data = fs.readFileSync(filePath).toString();
+                }
+            }
+
+            if (ext === '.js' &amp;&amp; !shouldIgnore(relativeUrl, options.jsx.ignore)) {
+                // React
+                data = data || fs.readFileSync(filePath).toString();
+
+                try {
+                    data = react.transform(data, options.jsx);
+                } catch (e) {
+                    // React can't transform, so just pass the js file along
+                    console.warn(`JSX compiler skipping ${filePath}:\n${e}`);
+                    data = fs.readFileSync(filePath).toString();
+                }
+            }
+
+            // Postprocessing steps
+            if (ext === '.css') {
+                if (options.uglifycss.enabled) {
+                    // Uglifycss
+                    data = data ?
+                        UglifyCss.processString(data, options.uglifycss) :
+                        UglifyCss.processFiles([filePath], options.uglifycss);
+                }
+            } else if (ext === '.js' &amp;&amp; options.uglifyjs.enabled &amp;&amp; !shouldIgnore(relativeUrl, options.uglifyjs.ignore)) {
+                // Uglifyjs
+                options.uglifyjs. ...</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+##Basic Usage
+
+Typically, in an Express app you'd serve static files using the built-in middleware. Like this:
+
+```javascript
+var express = require('express');
+
+app.use(express.<span class="apidocCodeKeywordSpan">static</span>(__dirname + '/public'));
+```
+
+To begin using Electricity simply replace the default static middleware:
+
+```javascript
+var express = require('express');
+var electricity = require('electricity');
+...</pre></li>
+    </ul>
+
+
+</div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.electricity.static" id="apidoc.module.electricity.static">module electricity.static</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.electricity.static.static" id="apidoc.element.electricity.static.static">
+        function <span class="apidocSignatureSpan">electricity.</span>static
+        <span class="apidocSignatureSpan">(directory, options)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">function static(directory, options) {
+    directory = path.resolve(directory || 'public');
+
+    if (!options) {
+        options = {};
+    }
+
+    if (!('hashify' in options)) {
+        options.hashify = true;
+    }
+
+    if (!options.sass) {
+        options.sass = {};
+    }
+
+    if (!options.snockets) {
+        options.snockets = {};
+    }
+
+    if (!options.jsx) {
+        options.jsx = {};
+    }
+
+    options.snockets.async = false;
+
+    if (!options.uglifycss) {
+        options.uglifycss = {
+            enabled: true
+        };
+    }
+
+    if (!options.uglifyjs) {
+        options.uglifyjs = {
+            compress: {
+                sequences: false
+            },
+            enabled: true
+        };
+    }
+
+    if (!options.watch) {
+        options.watch = {
+            enabled: true
+        };
+    }
+
+    if (options.hostname) {
+        if (typeof options.hostname !== 'string') {
+            throw Error('hostname must be a string');
+        } else if (options.hostname.slice(-1) === '/') {
+            options.hostname = options.hostname.slice(0, options.hostname.length - 1);
+        }
+    }
+
+    if (options.sass.imagePath) {
+        if (typeof options.sass.imagePath !== 'string') {
+            throw Error('sass.imagePath must be a string');
+        }
+    }
+
+    if (!options.sass.functions) {
+        options.sass.functions = {};
+    }
+
+    options.sass.functions['image-url($img)'] = function(img) {
+        return new sass.types.String('url("' +
+            (options.sass.imagePath ?
+                path.join('/', options.sass.imagePath, img.getValue()) :
+                path.join('/', img.getValue())
+            ) +
+            '")');
+    };
+
+    var files = {};
+    var snockets = new Snockets();
+    var stylesheets = [];
+
+    function cacheFile(filePath, stat) {
+        // Make sure stat wasn't an extra index parameter
+        stat = typeof stat === 'object' ? stat : fs.statSync(filePath);
+
+        if (!stat.isDirectory()) {
+            var data;
+            var ext = path.extname(filePath);
+            var relativeUrl = toRelativeUrl(filePath);
+
+            // Compilation steps
+            if (ext === '.scss' &amp;&amp; !shouldIgnore(relativeUrl, options.sass.ignore)) {
+                // Sass
+                options.sass.file = filePath;
+                data = sass.renderSync(options.sass).css.toString();
+
+                // Future steps should treat this as plain CSS
+                relativeUrl = relativeUrl.replace(/.scss$/, '.css');
+                ext = '.css';
+            } else if (ext === '.js' &amp;&amp; !shouldIgnore(relativeUrl, options.snockets.ignore)) {
+                // Snockets
+                try {
+                    data = snockets.getConcatenation(filePath, options.snockets);
+                } catch (e) {
+                    // Snockets can't parse, so just pass the js file along
+                    console.warn('Snockets skipping ' + filePath + ":\n" + e);
+                    data = fs.readFileSync(filePath).toString();
+                }
+            }
+
+            if (ext === '.js' &amp;&amp; !shouldIgnore(relativeUrl, options.jsx.ignore)) {
+                // React
+                data = data || fs.readFileSync(filePath).toString();
+
+                try {
+                    data = react.transform(data, options.jsx);
+                } catch (e) {
+                    // React can't transform, so just pass the js file along
+                    console.warn(`JSX compiler skipping ${filePath}:\n${e}`);
+                    data = fs.readFileSync(filePath).toString();
+                }
+            }
+
+            // Postprocessing steps
+            if (ext === '.css') {
+                if (options.uglifycss.enabled) {
+                    // Uglifycss
+                    data = data ?
+                        UglifyCss.processString(data, options.uglifycss) :
+                        UglifyCss.processFiles([filePath], options.uglifycss);
+                }
+            } else if (ext === '.js' &amp;&amp; options.uglifyjs.enabled &amp;&amp; !shouldIgnore(relativeUrl, options.uglifyjs.ignore)) {
+                // Uglifyjs
+                options.uglifyjs. ...</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+##Basic Usage
+
+Typically, in an Express app you'd serve static files using the built-in middleware. Like this:
+
+```javascript
+var express = require('express');
+
+app.use(express.<span class="apidocCodeKeywordSpan">static</span>(__dirname + '/public'));
+```
+
+To begin using Electricity simply replace the default static middleware:
+
+```javascript
+var express = require('express');
+var electricity = require('electricity');
+...</pre></li>
+    </ul>
+
+
+</div>
+
+<div class="apidocFooterDiv">
+    [ this document was created with
+    <a href="https://github.com/kaizhu256/node-utility2" target="_blank">utility2</a>
+    ]
+</div>
+</div>
+</body></html>
