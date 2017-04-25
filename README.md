@@ -1,4 +1,7 @@
-# api documentation for  [electricity (v1.7.0)](https://github.com/mediocre/electricity#readme)  [![npm package](https://img.shields.io/npm/v/npmdoc-electricity.svg?style=flat-square)](https://www.npmjs.org/package/npmdoc-electricity) [![travis-ci.org build-status](https://api.travis-ci.org/npmdoc/node-npmdoc-electricity.svg)](https://travis-ci.org/npmdoc/node-npmdoc-electricity)
+# npmdoc-electricity
+
+#### basic api documentation for  [electricity (v1.7.0)](https://github.com/mediocre/electricity#readme)  [![npm package](https://img.shields.io/npm/v/npmdoc-electricity.svg?style=flat-square)](https://www.npmjs.org/package/npmdoc-electricity) [![travis-ci.org build-status](https://api.travis-ci.org/npmdoc/node-npmdoc-electricity.svg)](https://travis-ci.org/npmdoc/node-npmdoc-electricity)
+
 #### An alternative to the built-in Express middleware for serving static files. Electricity follows a number of best practices for making web pages fast.
 
 [![NPM](https://nodei.co/npm/electricity.png?downloads=true&downloadRank=true&stars=true)](https://www.npmjs.com/package/electricity)
@@ -79,7 +82,8 @@
         "test": "mocha --reporter spec -t 21000",
         "watch": "mocha --reporter spec -w -g watcher -i"
     },
-    "version": "1.7.0"
+    "version": "1.7.0",
+    "bin": {}
 }
 ```
 
